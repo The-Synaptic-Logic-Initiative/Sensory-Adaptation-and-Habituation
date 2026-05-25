@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Habituation Neural Network Simulator</title>
+  <meta name="description" content="Interactive visual simulator of a Habituation Neural Network — neurons tire out with repeated stimuli and recover during rest." />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:     #080c14;
+      --bg-panel:    #0e1520;
+      --bg-card:     #131c2e;
+      --border:      #1e2d46;
+      --border-glow: #2a4a7f;
+      --amber:       #f59e0b;
+      --amber-dim:   #b45309;
+      --amber-glow:  rgba(245, 158, 11, 0.4);
+      --teal:        #14b8a6;
+      --teal-dim:    rgba(20, 184, 166, 0.15);
+      --purple:      #8b5cf6;
+      --pink:        #ec4899;
+      --text-primary:   #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted:     #475569;
+      --red:         #ef4444;
+      --green:       #22c55e;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 40% at 50% -10%, rgba(30, 58, 138, 0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 20px 32px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(14, 21, 32, 0.8);
+      backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--amber), var(--amber-dim));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 20px var(--amber-glow);
+    }
+    .logo-text h1 {
+      font-size: 15px; font-weight: 700; letter-spacing: 0.02em;
+      background: linear-gradient(135deg, var(--amber), #fcd34d);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .logo-text p {
+      font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em;
+      text-transform: uppercase; margin-top: 1px;
+    }
+    .header-badges {
+      display: flex; gap: 8px;
+    }
+    .badge {
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+      border: 1px solid;
+    }
+    .badge-amber { color: var(--amber); border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+    .badge-teal  { color: var(--teal);  border-color: rgba(20,184,166,0.3);  background: rgba(20,184,166,0.08); }
+
+    /* ── Main Layout ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      grid-template-rows: auto auto;
+      gap: 0;
+      padding: 0;
+    }
+
+    .canvas-section {
+      padding: 24px 20px 16px 24px;
+      border-right: 1px solid var(--border);
+    }
+    .panel-section {
+      padding: 20px 20px;
+      display: flex; flex-direction: column; gap: 16px;
+      overflow-y: auto;
+    }
+
+    /* ── Canvas Containers ── */
+    .canvas-wrap {
+      position: relative;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+      overflow: hidden;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .canvas-label {
+      position: absolute; top: 12px; left: 16px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    canvas { display: block; }
+
+    .graph-wrap {
+      margin-top: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-panel);
+      overflow: hidden;
+      box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .graph-label {
+      position: absolute; top: 10px; left: 14px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+    .graph-sublabel {
+      position: absolute; top: 10px; right: 14px;
+      font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Status Bar ── */
+    .status-bar {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      margin-top: 12px; padding: 10px 14px;
+      border-radius: 10px; background: var(--bg-card);
+      border: 1px solid var(--border);
+    }
+    .stat {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .stat-value { font-size: 14px; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: var(--amber); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red   { color: var(--red); }
+    .stat-value.teal  { color: var(--teal); }
+
+    /* ── Panel Cards ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-muted);
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-title-icon { font-size: 14px; }
+
+    /* ── Sliders ── */
+    .slider-group { display: flex; flex-direction: column; gap: 12px; }
+    .slider-row   { display: flex; flex-direction: column; gap: 6px; }
+    .slider-header {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .slider-name { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .slider-val  {
+      font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+      color: var(--amber); background: rgba(245,158,11,0.1);
+      padding: 2px 7px; border-radius: 5px; border: 1px solid rgba(245,158,11,0.2);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px;
+      background: var(--border);
+      border-radius: 2px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber-glow);
+      border: 2px solid var(--bg-deep);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 14px var(--amber-glow);
+    }
+
+    /* ── Buttons ── */
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-full { grid-column: 1/-1; }
+
+    .btn {
+      padding: 9px 12px; border-radius: 9px; border: 1px solid;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      letter-spacing: 0.01em;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn:active { transform: scale(0.96); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--amber), #d97706);
+      border-color: var(--amber);
+      color: #000;
+      box-shadow: 0 2px 12px rgba(245,158,11,0.3);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 20px rgba(245,158,11,0.5);
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.04);
+      border-color: var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-secondary:hover {
+      border-color: var(--border-glow);
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.07);
+    }
+
+    .btn-teal {
+      background: rgba(20,184,166,0.12);
+      border-color: rgba(20,184,166,0.3);
+      color: var(--teal);
+    }
+    .btn-teal:hover {
+      background: rgba(20,184,166,0.22);
+      border-color: var(--teal);
+      box-shadow: 0 0 14px rgba(20,184,166,0.3);
+    }
+
+    .btn-purple {
+      background: rgba(139,92,246,0.12);
+      border-color: rgba(139,92,246,0.3);
+      color: var(--purple);
+    }
+    .btn-purple:hover {
+      background: rgba(139,92,246,0.22);
+      border-color: var(--purple);
+      box-shadow: 0 0 14px rgba(139,92,246,0.3);
+    }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: var(--red);
+    }
+    .btn-danger:hover {
+      background: rgba(239,68,68,0.2);
+      border-color: var(--red);
+      box-shadow: 0 0 14px rgba(239,68,68,0.3);
+    }
+
+    .btn-toggle-on {
+      background: rgba(34,197,94,0.15);
+      border-color: rgba(34,197,94,0.4);
+      color: var(--green);
+      box-shadow: 0 0 10px rgba(34,197,94,0.2);
+    }
+
+    /* ── Legend ── */
+    .legend { display: flex; flex-direction: column; gap: 8px; }
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: var(--text-secondary); line-height: 1.4;
+    }
+    .legend-dot {
+      width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+    }
+    .legend-dot.active   { background: radial-gradient(circle, #fcd34d 30%, var(--amber) 70%); box-shadow: 0 0 8px var(--amber-glow); }
+    .legend-dot.habituated { background: radial-gradient(circle, #374151, #1f2937); border: 1px solid #374151; }
+    .legend-dot.recovering { background: radial-gradient(circle, #9ca3af, #4b5563); }
+
+    /* ── Phase indicator ── */
+    .phase-indicator {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 8px;
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+      font-size: 12px; font-weight: 500;
+    }
+    .phase-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--amber);
+      animation: pulse-dot 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+    .phase-dot.resting { background: var(--teal); }
+    .phase-dot.novel   { background: var(--purple); }
+    .phase-dot.idle    { animation: none; background: var(--text-muted); }
+
+    /* ── Responsive ── */
+    @media (max-width: 820px) {
+      main { grid-template-columns: 1fr; }
+      .canvas-section { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <div class="logo-text">
+      <h1>Habituation Neural Network</h1>
+      <p>Sensory Adaptation Simulator</p>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-amber">3 Layers</span>
+    <span class="badge badge-teal">9 Neurons</span>
+  </div>
+</header>
+
+<main>
+  <!-- ── Left: Canvas Area ── -->
+  <section class="canvas-section">
+    <div class="canvas-wrap" id="networkWrap">
+      <span class="canvas-label">Neural Network</span>
+      <canvas id="networkCanvas"></canvas>
+    </div>
+
+    <div class="status-bar">
+      <div class="stat">
+        <span class="stat-label">Output Response</span>
+        <span class="stat-value" id="statOutput">1.000</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Avg Hidden</span>
+        <span class="stat-value teal" id="statHidden">1.000</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Stimulus Count</span>
+        <span class="stat-value" id="statCount">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Phase</span>
+        <div class="phase-indicator" id="phaseIndicator">
+          <div class="phase-dot idle" id="phaseDot"></div>
+          <span id="phaseText">Idle</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="graph-wrap" id="graphWrap">
+      <span class="graph-label">Output Response Over Time</span>
+      <span class="graph-sublabel" id="graphVal">—</span>
+      <canvas id="graphCanvas"></canvas>
+    </div>
+  </section>
+
+  <!-- ── Right: Control Panel ── -->
+  <aside class="panel-section">
+
+    <!-- Parameters -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">⚙️</span> Parameters</div>
+      <div class="slider-group">
+
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name">Stimulus Rate</span>
+            <span class="slider-val" id="valStimulusRate">2.0 Hz</span>
+          </div>
+          <input type="range" id="sliderStimulusRate" min="0.5" max="5" step="0.1" value="2.0" />
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name">Habituation Rate</span>
+            <span class="slider-val" id="valHabRate">0.15</span>
+          </div>
+          <input type="range" id="sliderHabRate" min="0.01" max="0.5" step="0.01" value="0.15" />
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name">Recovery Rate</span>
+            <span class="slider-val" id="valRecRate">0.008</span>
+          </div>
+          <input type="range" id="sliderRecRate" min="0.001" max="0.05" step="0.001" value="0.008" />
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">🎮</span> Stimulus Controls</div>
+      <div class="btn-grid">
+        <button class="btn btn-primary btn-full" id="btnStimulus" onclick="sendStimulus()">
+          ⚡ Send Stimulus
+        </button>
+        <button class="btn btn-secondary" id="btnAuto" onclick="toggleAuto()">
+          ▶ Auto
+        </button>
+        <button class="btn btn-teal" id="btnRest" onclick="toggleRest()">
+          💤 Rest
+        </button>
+        <button class="btn btn-purple btn-full" id="btnNovel" onclick="novelStimulus()">
+          ✨ Novel Stimulus (Dishabituate)
+        </button>
+        <button class="btn btn-danger btn-full" onclick="resetSim()">
+          ↺ Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">💡</span> Legend</div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot active"></div>
+          <span><strong style="color:var(--amber)">Bright amber glow</strong> — high response (neuron fully active)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot recovering"></div>
+          <span><strong style="color:#9ca3af">Dim gray</strong> — partial recovery, moderate response</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot habituated"></div>
+          <span><strong style="color:#374151">Dark/no glow</strong> — habituated, response depleted</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:radial-gradient(circle,#a78bfa,var(--purple));box-shadow:0 0 8px rgba(139,92,246,0.5)"></div>
+          <span><strong style="color:var(--purple)">Purple flash</strong> — novel stimulus (dishabituation)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Params -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">📊</span> Live Parameters</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;">
+          <span style="color:var(--text-muted)">Hab. Rate (α)</span>
+          <span style="color:var(--amber);font-family:JetBrains Mono,monospace" id="liveHab">0.150</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;">
+          <span style="color:var(--text-muted)">Recovery Rate (β)</span>
+          <span style="color:var(--teal);font-family:JetBrains Mono,monospace" id="liveRec">0.008</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;">
+          <span style="color:var(--text-muted)">Stim. Freq.</span>
+          <span style="color:var(--purple);font-family:JetBrains Mono,monospace" id="liveFreq">2.0 Hz</span>
+        </div>
+        <div style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted);line-height:1.6">
+          <div><code style="color:var(--amber)">on hit:</code> response × (1 − α)</div>
+          <div><code style="color:var(--teal)">per frame:</code> += (1 − response) × β</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════
+const NET_CANVAS  = document.getElementById('networkCanvas');
+const NET_CTX     = NET_CANVAS.getContext('2d');
+const GRAPH_CANVAS = document.getElementById('graphCanvas');
+const GRAPH_CTX   = GRAPH_CANVAS.getContext('2d');
+
+const HISTORY_LEN = 200;
+let history = [];
+
+let params = {
+  stimulusRate:    2.0,
+  habituationRate: 0.15,
+  recoveryRate:    0.008,
+};
+
+let autoStim   = false;
+let resting    = false;
+let stimCount  = 0;
+let lastAutoTime = 0;
+let novelFlash = 0; // 0..1 for purple flash overlay
+
+// Neurons: layers [inputLayer, hiddenLayer, outputLayer]
+const LAYER_SIZES = [3, 4, 2];
+let layers = LAYER_SIZES.map(n => Array.from({length: n}, () => ({ response: 1.0, flash: 0 })));
+
+// ═══════════════════════════════════════════════════════════
+//  SIZING
+// ═══════════════════════════════════════════════════════════
+function resize() {
+  const netWrap = document.getElementById('networkWrap');
+  const gWrap   = document.getElementById('graphWrap');
+  const dpr = window.devicePixelRatio || 1;
+
+  const nw = netWrap.clientWidth;
+  const nh = Math.min(380, Math.max(300, window.innerHeight * 0.44));
+  NET_CANVAS.width  = nw * dpr;
+  NET_CANVAS.height = nh * dpr;
+  NET_CANVAS.style.width  = nw + 'px';
+  NET_CANVAS.style.height = nh + 'px';
+  NET_CTX.scale(dpr, dpr);
+
+  const gw = gWrap.clientWidth;
+  const gh = 130;
+  GRAPH_CANVAS.width  = gw * dpr;
+  GRAPH_CANVAS.height = gh * dpr;
+  GRAPH_CANVAS.style.width  = gw + 'px';
+  GRAPH_CANVAS.style.height = gh + 'px';
+  GRAPH_CTX.scale(dpr, dpr);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  NEURON POSITIONS
+// ═══════════════════════════════════════════════════════════
+function getNeuronPositions() {
+  const W = NET_CANVAS.width / (window.devicePixelRatio || 1);
+  const H = NET_CANVAS.height / (window.devicePixelRatio || 1);
+  const layerXs = [W * 0.18, W * 0.5, W * 0.82];
+  return layers.map((layer, li) => {
+    return layer.map((_, ni) => {
+      const total = layer.length;
+      const spacing = H / (total + 1);
+      return { x: layerXs[li], y: spacing * (ni + 1) };
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DRAW NETWORK
+// ═══════════════════════════════════════════════════════════
+function drawNetwork(ts) {
+  const W = NET_CANVAS.width / (window.devicePixelRatio || 1);
+  const H = NET_CANVAS.height / (window.devicePixelRatio || 1);
+  const ctx = NET_CTX;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background gradient
+  const bg = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.7);
+  bg.addColorStop(0, '#0c1422');
+  bg.addColorStop(1, '#080c14');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Novel stimulus flash overlay
+  if (novelFlash > 0) {
+    ctx.fillStyle = `rgba(139,92,246,${novelFlash * 0.18})`;
+    ctx.fillRect(0, 0, W, H);
+    novelFlash = Math.max(0, novelFlash - 0.025);
+  }
+
+  const positions = getNeuronPositions();
+  const R = Math.min(26, W * 0.04);
+
+  // ── Draw connections ──
+  for (let li = 0; li < layers.length - 1; li++) {
+    const fromLayer = positions[li];
+    const toLayer   = positions[li + 1];
+    for (const from of fromLayer) {
+      for (const to of toLayer) {
+        // Signal strength = average of from neuron response (left side)
+        const fromNeuron = layers[li][fromLayer.indexOf(from)];
+        const sig = fromNeuron.response;
+        const alpha = 0.06 + sig * 0.55;
+        // Color interpolation: dim gray → amber
+        const r = Math.round(55 + sig * 200);
+        const g = Math.round(65 + sig * 93);
+        const b = Math.round(80 + sig * -49);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+        ctx.lineWidth = 1 + sig * 2;
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ── Layer labels ──
+  const LAYER_NAMES = ['Input', 'Hidden', 'Output'];
+  const layerXs = [W*0.18, W*0.5, W*0.82];
+  ctx.textAlign = 'center';
+  LAYER_NAMES.forEach((name, li) => {
+    ctx.font = '600 11px Inter, sans-serif';
+    ctx.letterSpacing = '0.08em';
+    ctx.fillStyle = 'rgba(148,163,184,0.7)';
+    ctx.fillText(name.toUpperCase(), layerXs[li], 22);
+    // Neuron count
+    ctx.font = '400 10px Inter, sans-serif';
+    ctx.fillStyle = 'rgba(71,85,105,0.9)';
+    ctx.fillText(`${LAYER_SIZES[li]} neurons`, layerXs[li], 36);
+  });
+
+  // ── Draw neurons ──
+  positions.forEach((layer, li) => {
+    layer.forEach((pos, ni) => {
+      const neuron = layers[li][ni];
+      const resp = neuron.response;
+      const flashAmt = neuron.flash || 0;
+
+      // Outer glow
+      const glowRadius = R + 10 + resp * 22 + flashAmt * 14;
+      const glow = ctx.createRadialGradient(pos.x, pos.y, R * 0.3, pos.x, pos.y, glowRadius);
+
+      if (flashAmt > 0.05) {
+        // Purple flash for novel stimulus
+        glow.addColorStop(0, `rgba(196,181,253,${flashAmt * 0.9})`);
+        glow.addColorStop(0.4, `rgba(139,92,246,${flashAmt * 0.5})`);
+        glow.addColorStop(1, 'rgba(139,92,246,0)');
+      } else {
+        glow.addColorStop(0, `rgba(251,191,36,${resp * 0.6})`);
+        glow.addColorStop(0.5, `rgba(245,158,11,${resp * 0.25})`);
+        glow.addColorStop(1, 'rgba(245,158,11,0)');
+      }
+
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, glowRadius, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Neuron body
+      const bodyGrad = ctx.createRadialGradient(
+        pos.x - R*0.25, pos.y - R*0.25, 0,
+        pos.x, pos.y, R
+      );
+
+      if (flashAmt > 0.05) {
+        bodyGrad.addColorStop(0, `rgba(233,213,255,${0.4 + flashAmt * 0.6})`);
+        bodyGrad.addColorStop(0.5, `rgba(167,139,250,${0.3 + flashAmt * 0.5})`);
+        bodyGrad.addColorStop(1, `rgba(109,40,217,${0.4 + flashAmt * 0.4})`);
+      } else {
+        const brightness = 0.15 + resp * 0.85;
+        const coreR = Math.round(50  + resp * 205);
+        const coreG = Math.round(40  + resp * 118);
+        const coreB = Math.round(10  + resp * 0);
+        bodyGrad.addColorStop(0, `rgba(${Math.min(255,coreR+80)},${Math.min(255,coreG+80)},${coreB},${brightness})`);
+        bodyGrad.addColorStop(0.5, `rgba(${coreR},${coreG},${coreB},${brightness})`);
+        bodyGrad.addColorStop(1, `rgba(${Math.round(coreR*0.5)},${Math.round(coreG*0.4)},20,${brightness})`);
+      }
+
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, R, 0, Math.PI * 2);
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+
+      // Rim
+      ctx.strokeStyle = flashAmt > 0.05
+        ? `rgba(167,139,250,${0.4 + flashAmt * 0.5})`
+        : `rgba(245,158,11,${0.15 + resp * 0.7})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Inner highlight
+      const highlight = ctx.createRadialGradient(
+        pos.x - R*0.3, pos.y - R*0.35, 0,
+        pos.x - R*0.2, pos.y - R*0.2, R * 0.55
+      );
+      highlight.addColorStop(0, `rgba(255,255,255,${resp * 0.25})`);
+      highlight.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, R, 0, Math.PI * 2);
+      ctx.fillStyle = highlight;
+      ctx.fill();
+
+      // Response text
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `600 ${Math.max(9, R*0.45)}px JetBrains Mono, monospace`;
+      ctx.fillStyle = resp > 0.4
+        ? `rgba(0,0,0,${0.5 + resp * 0.4})`
+        : `rgba(150,160,175,0.8)`;
+      ctx.fillText(resp.toFixed(2), pos.x, pos.y);
+
+      // Decay flash effect
+      if (neuron.flash > 0) {
+        neuron.flash = Math.max(0, neuron.flash - 0.04);
+      }
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DRAW GRAPH
+// ═══════════════════════════════════════════════════════════
+function drawGraph() {
+  const W = GRAPH_CANVAS.width / (window.devicePixelRatio || 1);
+  const H = GRAPH_CANVAS.height / (window.devicePixelRatio || 1);
+  const ctx = GRAPH_CTX;
+  const PAD = { top: 30, bottom: 20, left: 40, right: 14 };
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0e1520';
+  ctx.fillRect(0, 0, W, H);
+
+  const gw = W - PAD.left - PAD.right;
+  const gh = H - PAD.top - PAD.bottom;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(30,45,70,0.8)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.top + (gh / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, y);
+    ctx.lineTo(PAD.left + gw, y);
+    ctx.stroke();
+    // Y labels
+    ctx.fillStyle = 'rgba(71,85,105,0.8)';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((1 - i/4).toFixed(2), PAD.left - 5, y);
+  }
+
+  // X axis label
+  ctx.fillStyle = 'rgba(71,85,105,0.6)';
+  ctx.font = '10px Inter, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('← time', PAD.left + gw, H - 3);
+
+  if (history.length < 2) return;
+
+  const pts = history.slice(-HISTORY_LEN);
+
+  // Fill under curve
+  const fillGrad = ctx.createLinearGradient(0, PAD.top, 0, PAD.top + gh);
+  fillGrad.addColorStop(0, 'rgba(245,158,11,0.25)');
+  fillGrad.addColorStop(1, 'rgba(245,158,11,0.01)');
+
+  ctx.beginPath();
+  pts.forEach((v, i) => {
+    const x = PAD.left + (i / (HISTORY_LEN - 1)) * gw;
+    const y = PAD.top + (1 - v) * gh;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(PAD.left + ((pts.length - 1) / (HISTORY_LEN - 1)) * gw, PAD.top + gh);
+  ctx.lineTo(PAD.left, PAD.top + gh);
+  ctx.closePath();
+  ctx.fillStyle = fillGrad;
+  ctx.fill();
+
+  // Line
+  const lineGrad = ctx.createLinearGradient(PAD.left, 0, PAD.left + gw, 0);
+  lineGrad.addColorStop(0, 'rgba(245,158,11,0.3)');
+  lineGrad.addColorStop(1, 'rgba(245,158,11,1)');
+  ctx.beginPath();
+  pts.forEach((v, i) => {
+    const x = PAD.left + (i / (HISTORY_LEN - 1)) * gw;
+    const y = PAD.top + (1 - v) * gh;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = lineGrad;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Current value dot
+  const lastV = pts[pts.length - 1];
+  const dotX = PAD.left + ((pts.length - 1) / (HISTORY_LEN - 1)) * gw;
+  const dotY = PAD.top + (1 - lastV) * gh;
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#f59e0b';
+  ctx.fill();
+  // Dot glow
+  const dg = ctx.createRadialGradient(dotX, dotY, 0, dotX, dotY, 10);
+  dg.addColorStop(0, 'rgba(245,158,11,0.6)');
+  dg.addColorStop(1, 'rgba(245,158,11,0)');
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 10, 0, Math.PI * 2);
+  ctx.fillStyle = dg;
+  ctx.fill();
+
+  // Update graph sublabel
+  document.getElementById('graphVal').textContent = lastV.toFixed(3);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SIM LOGIC
+// ═══════════════════════════════════════════════════════════
+function getOutputResponse() {
+  // Average of output layer neurons
+  return layers[2].reduce((s, n) => s + n.response, 0) / layers[2].length;
+}
+function getHiddenResponse() {
+  return layers[1].reduce((s, n) => s + n.response, 0) / layers[1].length;
+}
+
+function applyStimulus() {
+  if (resting) return;
+  stimCount++;
+  document.getElementById('statCount').textContent = stimCount;
+
+  const hr = params.habituationRate;
+
+  // Input layer gets direct hit
+  layers[0].forEach(n => {
+    n.response = n.response * (1 - hr);
+    n.flash = 1.0;
+  });
+
+  // Hidden layer: average input response as signal, then habituate
+  const inputAvg = layers[0].reduce((s, n) => s + n.response, 0) / layers[0].length;
+  layers[1].forEach(n => {
+    n.response = n.response * (1 - hr * (0.6 + inputAvg * 0.4));
+    n.flash = inputAvg;
+  });
+
+  // Output layer: driven by hidden layer
+  const hiddenAvg = layers[1].reduce((s, n) => s + n.response, 0) / layers[1].length;
+  layers[2].forEach(n => {
+    n.response = n.response * (1 - hr * (0.4 + hiddenAvg * 0.4));
+    n.flash = hiddenAvg;
+  });
+
+  updatePhase('stimulating');
+}
+
+function recoveryStep() {
+  const rr = params.recoveryRate;
+  layers.forEach(layer => {
+    layer.forEach(n => {
+      n.response = Math.min(1, n.response + (1 - n.response) * rr);
+    });
+  });
+}
+
+function novelStimulus() {
+  // Dishabituation — spike all responses back up
+  novelFlash = 1.0;
+  layers.forEach(layer => {
+    layer.forEach(n => {
+      n.response = Math.min(1.0, n.response + (1 - n.response) * 0.75);
+      n.flash = 1.0;
+    });
+  });
+  updatePhase('novel');
+  stimCount++;
+  document.getElementById('statCount').textContent = stimCount;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════════════
+function sendStimulus() {
+  if (resting) return;
+  applyStimulus();
+}
+
+function toggleAuto() {
+  if (resting) return;
+  autoStim = !autoStim;
+  const btn = document.getElementById('btnAuto');
+  if (autoStim) {
+    btn.textContent = '⏸ Auto ON';
+    btn.className = 'btn btn-toggle-on';
+    updatePhase('auto');
+  } else {
+    btn.textContent = '▶ Auto';
+    btn.className = 'btn btn-secondary';
+    updatePhase('idle');
+  }
+}
+
+function toggleRest() {
+  resting = !resting;
+  const btn = document.getElementById('btnRest');
+  if (resting) {
+    autoStim = false;
+    document.getElementById('btnAuto').textContent = '▶ Auto';
+    document.getElementById('btnAuto').className = 'btn btn-secondary';
+    btn.textContent = '▶ Resume';
+    btn.className = 'btn btn-secondary';
+    updatePhase('resting');
+  } else {
+    btn.textContent = '💤 Rest';
+    btn.className = 'btn btn-teal';
+    updatePhase('idle');
+  }
+}
+
+function resetSim() {
+  autoStim = false;
+  resting  = false;
+  stimCount = 0;
+  history  = [];
+  novelFlash = 0;
+  layers = LAYER_SIZES.map(n => Array.from({length: n}, () => ({ response: 1.0, flash: 0 })));
+  document.getElementById('btnAuto').textContent = '▶ Auto';
+  document.getElementById('btnAuto').className = 'btn btn-secondary';
+  document.getElementById('btnRest').textContent = '💤 Rest';
+  document.getElementById('btnRest').className = 'btn btn-teal';
+  document.getElementById('statCount').textContent = '0';
+  updatePhase('idle');
+}
+
+function updatePhase(state) {
+  const dot  = document.getElementById('phaseDot');
+  const text = document.getElementById('phaseText');
+  const indicator = document.getElementById('phaseIndicator');
+  dot.className = 'phase-dot';
+  switch(state) {
+    case 'stimulating':
+      dot.classList.add(''); // amber by default
+      text.textContent = 'Stimulating';
+      indicator.style.background = 'rgba(245,158,11,0.1)';
+      indicator.style.borderColor = 'rgba(245,158,11,0.3)';
+      break;
+    case 'auto':
+      text.textContent = 'Auto-Stimulating';
+      indicator.style.background = 'rgba(245,158,11,0.1)';
+      indicator.style.borderColor = 'rgba(245,158,11,0.3)';
+      break;
+    case 'resting':
+      dot.classList.add('resting');
+      text.textContent = 'Resting…';
+      indicator.style.background = 'rgba(20,184,166,0.08)';
+      indicator.style.borderColor = 'rgba(20,184,166,0.25)';
+      break;
+    case 'novel':
+      dot.classList.add('novel');
+      text.textContent = 'Novel Stimulus!';
+      indicator.style.background = 'rgba(139,92,246,0.1)';
+      indicator.style.borderColor = 'rgba(139,92,246,0.3)';
+      setTimeout(() => updatePhase(autoStim ? 'auto' : 'idle'), 1200);
+      break;
+    default:
+      dot.classList.add('idle');
+      text.textContent = 'Idle';
+      indicator.style.background = 'rgba(245,158,11,0.08)';
+      indicator.style.borderColor = 'rgba(245,158,11,0.2)';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SLIDER WIRING
+// ═══════════════════════════════════════════════════════════
+function wireSlidrs() {
+  const s = (id, valId, fmt, key) => {
+    const el  = document.getElementById(id);
+    const val = document.getElementById(valId);
+    el.addEventListener('input', () => {
+      params[key] = parseFloat(el.value);
+      val.textContent = fmt(params[key]);
+      updateLiveParams();
+    });
+  };
+
+  s('sliderStimulusRate', 'valStimulusRate', v => v.toFixed(1) + ' Hz', 'stimulusRate');
+  s('sliderHabRate',      'valHabRate',      v => v.toFixed(2),          'habituationRate');
+  s('sliderRecRate',      'valRecRate',      v => v.toFixed(3),          'recoveryRate');
+}
+
+function updateLiveParams() {
+  document.getElementById('liveHab').textContent  = params.habituationRate.toFixed(3);
+  document.getElementById('liveRec').textContent  = params.recoveryRate.toFixed(3);
+  document.getElementById('liveFreq').textContent = params.stimulusRate.toFixed(1) + ' Hz';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════════════
+let frameCount = 0;
+function loop(ts) {
+  // Auto stimulus
+  if (autoStim && !resting) {
+    const interval = 1000 / params.stimulusRate;
+    if (ts - lastAutoTime >= interval) {
+      applyStimulus();
+      lastAutoTime = ts;
+    }
+  }
+
+  // Recovery every frame
+  recoveryStep();
+
+  // Record output every 2 frames for performance
+  frameCount++;
+  if (frameCount % 2 === 0) {
+    const out = getOutputResponse();
+    history.push(out);
+    if (history.length > HISTORY_LEN * 2) history = history.slice(-HISTORY_LEN);
+
+    // Update stats
+    document.getElementById('statOutput').textContent = out.toFixed(3);
+    document.getElementById('statHidden').textContent = getHiddenResponse().toFixed(3);
+
+    const sv = document.getElementById('statOutput');
+    sv.className = 'stat-value' + (out > 0.6 ? '' : out > 0.3 ? '' : ' red');
+  }
+
+  drawNetwork(ts);
+  drawGraph();
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('resize', () => {
+  resize();
+});
+resize();
+wireSlidrs();
+updateLiveParams();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
