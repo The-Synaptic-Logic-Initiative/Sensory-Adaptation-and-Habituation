@@ -1,4 +1,4 @@
-# 🧠 Sensory Adaptation & Habituation Simulator
+# 🧠 Sensory Adaptation & Habituation Simulator [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 An interactive, browser-based neural network simulation demonstrating **Sensory Habituation** and **Spontaneous Recovery**. Watch artificial neurons visually "tire out" as they process repeated stimuli, dimming in real-time, and watch them light back up when allowed to rest.
 
